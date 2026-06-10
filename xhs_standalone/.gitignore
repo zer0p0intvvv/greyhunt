@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.env
+*.db
+data/
+*_user_data_dir/
+.venv/
+dist/
+*.egg-info/

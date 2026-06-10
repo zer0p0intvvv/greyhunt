@@ -1,0 +1,2 @@
+openai>=1.0.0       # LLM 标注（走 MaaS 网关）
+playwright>=1.32.0  # 采集适配层用（按平台需要）

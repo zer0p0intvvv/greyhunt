@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrayHunt Demo · 提词器</title>
+<style>
+  :root{--bg:#0a0c10;--card:#141922;--line:#26303f;--text:#f0f3f8;--muted:#8a94a6;
+        --brand:#4ea1ff;--brand2:#7c5cff;--ok:#3ddc97;--warn:#ffcf6c;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);overflow:hidden;
+       font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;}
+  .stage{position:relative;width:100vw;height:100vh}
+  .cue{position:absolute;inset:0;display:none;flex-direction:column;
+       padding:7vh 9vw 14vh;animation:fade .4s ease}
+  .cue.active{display:flex}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .meta{display:flex;align-items:center;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+  .time{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;
+        font-size:18px;font-weight:800;padding:6px 16px;border-radius:999px}
+  .title{font-size:26px;font-weight:700;color:var(--muted)}
+  .action{font-size:18px;color:var(--warn);background:#2a2415;border:1px solid #4a3a1f;
+          border-radius:10px;padding:10px 16px;margin-bottom:20px;line-height:1.6}
+  .action b{color:var(--warn)}
+  .speak{font-size:clamp(26px,3.4vw,46px);line-height:1.65;font-weight:600;
+         overflow-y:auto;flex:1;padding-right:10px}
+  .speak p{margin-bottom:22px}
+  .speak .hi{color:var(--brand);font-weight:800}
+  .speak .ok{color:var(--ok);font-weight:800}
+  .speak .quote{display:block;background:var(--card);border-left:4px solid var(--brand);
+                border-radius:10px;padding:18px 22px;margin:18px 0;font-size:.82em;
+                color:#cdd6e4;white-space:pre-wrap;line-height:1.5}
+  ::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:#2c3950;border-radius:6px}
+  .ctrl{position:fixed;bottom:24px;left:0;right:0;display:flex;justify-content:center;
+        align-items:center;gap:14px;z-index:50}
+  .ctrl button{background:var(--card);border:1px solid var(--line);color:var(--text);
+               padding:12px 20px;border-radius:12px;font-size:17px;cursor:pointer}
+  .ctrl button:hover{border-color:var(--brand)}
+  .ctrl .auto.on{background:var(--ok);color:#04210f;border-color:var(--ok);font-weight:700}
+  .pos{position:fixed;top:22px;right:32px;color:var(--muted);font-size:18px;z-index:50;font-weight:700}
+  .bar{position:fixed;top:0;left:0;height:4px;background:linear-gradient(90deg,var(--brand),var(--brand2));z-index:60;transition:width .3s}
+  .hint{position:fixed;top:22px;left:32px;color:var(--muted);font-size:14px;z-index:50}
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="hint">← → 翻页 · A 自动滚动 · ↑↓ 调速</div>
+<div class="pos" id="pos">1 / 8</div>
+<div class="stage" id="stage">
+
+<!-- 1 -->
+<section class="cue active">
+  <div class="meta"><span class="time">00:00–00:30</span><span class="title">开场 · 封面页</span></div>
+  <div class="action">画面：<b>PPT 封面页</b></div>
+  <div class="speak">
+    <p>大家好。今天给大家演示的是 <span class="hi">GrayHunt —— 黑灰产情报智能体</span>。</p>
+    <p>它能同时监控 <span class="hi">Telegram 和 Twitter</span> 两个平台，针对抖音、TikTok 这类平台上的刷量作弊、账号交易、引流诈骗等黑灰产风险，做到<span class="hi">自动采集、智能清洗、沉淀落库、情报研判、可视化展示</span>全链路自动化。</p>
+    <p>而这一切，用户只需要 <span class="ok">一句话</span> 就能驱动。</p>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="cue">
+  <div class="meta"><span class="time">00:30–01:15</span><span class="title">痛点与架构</span></div>
+  <div class="action">画面：翻到 <b>PPT 第2页（痛点）→ 第3页（架构）</b></div>
+  <div class="speak">
+    <p>先说为什么要做这个。</p>
+    <p>黑灰产的广告散落在海量的 TG 群和推特里，人工根本盯不过来；更麻烦的是，<span class="hi">关键的引流信息——微信号、电报号、域名、价目表，往往藏在图片里</span>，纯文本搜索根本搜不到，特别容易漏。</p>
+    <p>（翻到架构页）GrayHunt 的解法是一个<span class="hi">自定义智能体</span>，它编排了一整条流水线：<span class="hi">采集 → 关键词加 LLM 双层清洗 → 落库 → SQL 加 LLM 研判 → 生成可视化大屏</span>。</p>
+    <p>下面我直接实操给大家看。</p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="cue">
+  <div class="meta"><span class="time">01:15–01:45</span><span class="title">进入智能体 · 展示配置</span></div>
+  <div class="action">画面：浏览器 → <b>localhost:2026 → Agents 页 → 点 ⚙️ 查看配置</b></div>
+  <div class="speak">
+    <p>这是我创建的智能体 <span class="hi">telegram-twitter-gray-hunter</span>。点开配置可以看到——</p>
+    <p>它绑定了采集、治理、分析三个 skill，加图表能力；</p>
+    <p>它的 <span class="hi">SOUL 人设</span> 里内置了工作流和几条关键护栏：<span class="ok">严禁编造数据、账号实体不脱敏、优先用安全方式防封号、用真实路径</span>。</p>
+    <p>这些护栏保证它跑出来的是<span class="hi">真实、可溯源</span>的情报。</p>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="cue">
+  <div class="meta"><span class="time">01:45–04:00</span><span class="title">核心实操 · 一条提示词跑全流程</span></div>
+  <div class="action">画面：<b>agent 对话框，粘贴提示词发送，录制执行过程</b></div>
+  <div class="speak">
+    <p>现在我给它一条指令，让它跑完整流程。</p>
+    <span class="quote">完成一次完整的黑灰产情报作业：
+① Telegram crawl --joined-only --days 30 采集已加入群
+② Twitter crawl-twitter --days 7 --vision 采集（开启图片视觉提取）
+③ analyst 分析：风险分布、Top高危群、高频引流渠道（不脱敏），出研判报告
+④ report-html --embed-images 生成可视化页面
+全程真实数据严禁编造，实体不脱敏，用真实路径。</span>
+    <p>可以看到它开始<span class="hi">采集</span>了——Telegram 用的是 joined-only 模式，只读已加入的群，不主动加群，所以<span class="ok">零封号风险</span>。</p>
+    <p>注意这里——它在做<span class="hi">多模态视觉提取</span>。黑灰产把价目表、微信号印在图片里规避检测，它用 LLM <span class="hi">把图里的文字识别出来</span>。比如这条，从图片里读出了完整的「支付宝号价目表，白号158、年号439」，这是纯文本完全拿不到的。</p>
+    <p>采集完它自动进入<span class="hi">分析</span>——SQL 聚合统计风险分布，找出高频引流渠道，微信、电报、域名，而且<span class="ok">完整不脱敏</span>，因为情报就是要能溯源。</p>
+    <p>最后它调用 report-html 生成了<span class="hi">可视化大屏</span>，给出文件路径。</p>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="cue">
+  <div class="meta"><span class="time">04:00–05:30</span><span class="title">成果展示 · 情报大屏</span></div>
+  <div class="action">画面：打开 <b>grayhunt.html 情报大屏，逐个演示交互</b></div>
+  <div class="speak">
+    <p>这就是它生成的 <span class="hi">GrayHunt 情报大屏</span>，现在有 378 条情报、44 个来源群组。</p>
+    <p>（演示筛选）顶部有四个筛选维度——<span class="hi">风险等级、风险类别、来源平台、来源群组</span>，都是按情报数量降序排的。比如筛'刷量作弊'，125 条全列出来。</p>
+    <p>（点群链接）群链接可以<span class="hi">直接点进去</span>；如果是私密群，旁边有 🔒 标识，提示需要登录且是群成员才能进。</p>
+    <p>（展示图片）这里——卡片直接展示了<span class="hi">图片缩略图</span>，下面绿色这块就是刚才<span class="ok">从图片里提取出来的信息</span>，账号、域名、价目表都还原出来了。</p>
+    <p>正文里的网址也都自动变成了<span class="hi">可点击的蓝链</span>，方便溯源。</p>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="cue">
+  <div class="meta"><span class="time">05:30–06:30</span><span class="title">技术亮点 · 省 LLM 花销</span></div>
+  <div class="action">画面：切回 PPT，<b>第7页（省钱机制）→ 第8页（CASE表格）</b></div>
+  <div class="speak">
+    <p>最后讲一个核心技术亮点——<span class="hi">怎么大幅降低 LLM 的花销</span>。</p>
+    <p>我们用了四个手段：</p>
+    <p>第一，最关键的，<span class="hi">关键词预筛</span>——先用本地关键词粗筛，<span class="hi">只有命中的才送 LLM</span>，海量噪音在本地零成本就拦掉了；</p>
+    <p>第二，<span class="hi">批量分析</span>，多条合并成一次调用；第三，<span class="hi">视觉提取按需开启</span>，加落库去重，不重复研判。</p>
+  </div>
+</section>
+
+<!-- 7 -->
+<section class="cue">
+  <div class="meta"><span class="time">06:30–07:00</span><span class="title">省钱 CASE · 重点慢讲</span></div>
+  <div class="action">画面：<b>PPT 第8页 CASE 表格，放慢强调数据</b></div>
+  <div class="speak">
+    <p>这是真实数据：</p>
+    <p>Telegram 这个小Z集团的群，30天历史 <span class="hi">2795 条消息</span>，经过关键词预筛，<span class="ok">最终只有 2 条</span> 真正送进 LLM——<span class="ok">直接省掉了 99.9% 的 LLM 调用</span>。</p>
+    <p>Twitter 也是，748 条筛到 141 条，再叠加批量调用，请求次数又降 90% 以上。</p>
+    <p>如果用最朴素的方案把每条都喂给 LLM，要 2795 次调用；GrayHunt 实际只用了个位数次。<span class="ok">整体 LLM 成本降到了原始方案的个位数百分比。</span></p>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="cue">
+  <div class="meta"><span class="time">07:00–07:30</span><span class="title">收尾</span></div>
+  <div class="action">画面：回到 <b>PPT 封面 或 架构页</b></div>
+  <div class="speak">
+    <p>总结一下：<span class="hi">GrayHunt 用一个智能体，把黑灰产情报的采集、清洗、落库、研判、可视化全链路自动化</span>，还通过多模态把藏在图片里的情报也挖了出来，同时用关键词预筛等手段把 LLM 成本压到极低。</p>
+    <p>用户要做的，只是 <span class="ok">一句话</span>。</p>
+    <p>谢谢观看。</p>
+  </div>
+</section>
+
+</div>
+
+<div class="ctrl">
+  <button onclick="prev()">‹ 上一段</button>
+  <button class="auto" id="autoBtn" onclick="toggleAuto()">▶ 自动滚动</button>
+  <button onclick="next()">下一段 ›</button>
+</div>
+
+<script>
+  const cues=[...document.querySelectorAll('.cue')];
+  let i=0, auto=false, speed=1.0, raf=null;
+  function show(n){
+    i=Math.max(0,Math.min(cues.length-1,n));
+    cues.forEach((c,k)=>c.classList.toggle('active',k===i));
+    document.getElementById('pos').textContent=(i+1)+' / '+cues.length;
+    document.getElementById('bar').style.width=((i+1)/cues.length*100)+'%';
+    const sp=cues[i].querySelector('.speak'); if(sp) sp.scrollTop=0;
+  }
+  function next(){stopAuto();show(i+1)}
+  function prev(){stopAuto();show(i-1)}
+  function toggleAuto(){auto?stopAuto():startAuto()}
+  function startAuto(){
+    auto=true; document.getElementById('autoBtn').classList.add('on');
+    document.getElementById('autoBtn').textContent='⏸ 停止滚动';
+    const sp=cues[i].querySelector('.speak');
+    function tick(){ if(!auto)return; sp.scrollTop+=speed; raf=requestAnimationFrame(tick); }
+    raf=requestAnimationFrame(tick);
+  }
+  function stopAuto(){
+    auto=false; cancelAnimationFrame(raf);
+    document.getElementById('autoBtn').classList.remove('on');
+    document.getElementById('autoBtn').textContent='▶ 自动滚动';
+  }
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight')next();
+    else if(e.key==='ArrowLeft')prev();
+    else if(e.key.toLowerCase()==='a'){toggleAuto();e.preventDefault();}
+    else if(e.key==='ArrowUp'){speed=Math.min(6,speed+0.5);e.preventDefault();}
+    else if(e.key==='ArrowDown'){speed=Math.max(0.5,speed-0.5);e.preventDefault();}
+  });
+  show(0);
+</script>
+</body>
+</html>

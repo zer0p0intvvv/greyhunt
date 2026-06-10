@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>XHS 黑灰产情报收集与分析思路</title>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg2: #0d1730;
+      --card: rgba(18, 30, 55, 0.84);
+      --card2: rgba(8, 17, 33, 0.78);
+      --line: rgba(116, 194, 255, 0.22);
+      --text: #eaf4ff;
+      --muted: #9db5cc;
+      --cyan: #43d9ff;
+      --purple: #a270ff;
+      --red: #ff556f;
+      --orange: #ffb25b;
+      --green: #5dffb3;
+      --mono: "SFMono-Regular", "Menlo", "Consolas", monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 8%, rgba(67, 217, 255, 0.18), transparent 28%),
+        radial-gradient(circle at 80% 18%, rgba(162, 112, 255, 0.16), transparent 30%),
+        linear-gradient(180deg, #050b15 0%, var(--bg) 48%, #060a12 100%);
+      font-family: var(--sans);
+      line-height: 1.65;
+    }
+
+    a { color: var(--cyan); text-decoration: none; }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(16px);
+      background: rgba(5, 10, 20, 0.76);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .brand span { color: var(--cyan); }
+
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 14px;
+    }
+
+    .nav-links a { color: var(--muted); }
+    .nav-links a:hover { color: var(--text); }
+
+    .hero {
+      min-height: 650px;
+      display: grid;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero:before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(110deg, rgba(5, 10, 18, 0.96) 0%, rgba(5, 10, 18, 0.76) 52%, rgba(5, 10, 18, 0.42) 100%),
+        repeating-linear-gradient(90deg, rgba(67,217,255,0.04) 0 1px, transparent 1px 92px),
+        repeating-linear-gradient(0deg, rgba(162,112,255,0.035) 0 1px, transparent 1px 92px);
+    }
+
+    .hero:after {
+      content: "";
+      position: absolute;
+      right: 5vw;
+      top: 120px;
+      width: 420px;
+      height: 420px;
+      border: 1px solid rgba(67,217,255,0.22);
+      border-radius: 50%;
+      box-shadow: 0 0 100px rgba(67,217,255,0.12), inset 0 0 80px rgba(162,112,255,0.1);
+      opacity: .72;
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 1180px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 92px 24px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border: 1px solid rgba(67,217,255,0.32);
+      border-radius: 999px;
+      background: rgba(67,217,255,0.08);
+      color: var(--cyan);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+
+    h1 {
+      max-width: 940px;
+      margin: 24px 0 18px;
+      font-size: clamp(40px, 6vw, 78px);
+      line-height: 1.06;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 820px;
+      margin: 0 0 32px;
+      color: #c9d9ea;
+      font-size: 20px;
+    }
+
+    .hero-actions, .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 18px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+      color: #06101d;
+      border: none;
+    }
+
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 56px 24px 96px;
+    }
+
+    section { margin: 0 0 76px; }
+
+    .section-title { margin-bottom: 24px; }
+    .section-title .label {
+      color: var(--cyan);
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      margin: 8px 0 10px;
+      font-size: clamp(28px, 4vw, 44px);
+      line-height: 1.18;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 18px;
+      max-width: 920px;
+      margin: 0;
+    }
+
+    .grid { display: grid; gap: 18px; }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    .card, .step, .risk-row, .token-card, .file-card {
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)),
+        var(--card);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.26);
+    }
+
+    .card {
+      position: relative;
+      padding: 24px;
+      border-radius: 20px;
+      overflow: hidden;
+    }
+
+    .card:before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 8% 0%, rgba(67,217,255,0.11), transparent 34%);
+      pointer-events: none;
+    }
+
+    .card > * { position: relative; }
+    .card h3, .token-card h3, .file-card h3 {
+      margin: 0 0 10px;
+      font-size: 21px;
+    }
+
+    .card p, .card li, .step p, .risk-row p, .token-card p, .file-card p {
+      color: #bed0e0;
+      margin: 0;
+    }
+
+    ul { margin: 12px 0 0; padding-left: 20px; }
+
+    .tag {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(67,217,255,0.08);
+      border: 1px solid rgba(67,217,255,0.18);
+      color: #d8f7ff;
+      font-size: 13px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .step {
+      min-height: 176px;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(9, 19, 37, 0.84);
+    }
+
+    .step-num {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 12px;
+      font-weight: 900;
+      color: #06101d;
+      background: linear-gradient(135deg, var(--cyan), var(--purple));
+    }
+
+    .step h3 { margin: 0 0 8px; font-size: 18px; }
+
+    .matrix {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--card2);
+    }
+
+    .matrix th, .matrix td {
+      padding: 15px 16px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    .matrix th {
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .matrix td { color: #bed0e0; }
+    .matrix tr:last-child td { border-bottom: 0; }
+
+    .risk-layout {
+      display: grid;
+      grid-template-columns: 0.75fr 1.25fr;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .risk-levels { display: grid; gap: 12px; }
+    .risk-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 15px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+    }
+
+    .pill {
+      display: inline-flex;
+      justify-content: center;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .low { background: rgba(93,255,179,0.13); color: var(--green); }
+    .mid { background: rgba(255,178,91,0.13); color: var(--orange); }
+    .high { background: rgba(255,85,111,0.13); color: var(--red); }
+
+    .token-stack {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .token-card {
+      border-radius: 18px;
+      padding: 22px;
+      min-height: 188px;
+    }
+
+    .token-card .num {
+      font-family: var(--mono);
+      color: var(--cyan);
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    .code {
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(67,217,255,0.18);
+      background: rgba(2, 7, 15, 0.88);
+      color: #dff7ff;
+      overflow-x: auto;
+      font-family: var(--mono);
+      font-size: 14px;
+      white-space: pre;
+    }
+
+    .demo-timeline {
+      counter-reset: demo;
+      display: grid;
+      gap: 16px;
+    }
+
+    .demo-item {
+      counter-increment: demo;
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .demo-item:before {
+      content: counter(demo);
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(162,112,255,0.15);
+      border: 1px solid rgba(162,112,255,0.32);
+      color: #d8c6ff;
+      font-weight: 900;
+    }
+
+    .demo-item h3 { margin: 0 0 6px; }
+    .demo-item p { margin: 0; color: var(--muted); }
+
+    .quote {
+      margin-top: 22px;
+      padding: 24px;
+      border-left: 3px solid var(--cyan);
+      background: rgba(67,217,255,0.07);
+      color: var(--text);
+      font-size: 20px;
+      border-radius: 0 16px 16px 0;
+    }
+
+    .file-card {
+      border-radius: 18px;
+      padding: 24px;
+      background: rgba(9, 19, 37, 0.84);
+    }
+
+    .file-name {
+      font-family: var(--mono);
+      color: var(--cyan);
+      font-size: 14px;
+      margin-bottom: 10px;
+    }
+
+    .footer {
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      text-align: center;
+      padding: 28px 24px;
+      background: rgba(5,10,18,0.68);
+    }
+
+    @media (max-width: 980px) {
+      .grid-2, .grid-3, .grid-4, .risk-layout, .token-stack, .flow {
+        grid-template-columns: 1fr;
+      }
+      .nav-links { display: none; }
+      .hero { min-height: 560px; }
+      .hero:after { opacity: .28; right: -160px; }
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <div class="brand"><span>XHS</span> 黑灰产情报分析</div>
+      <div class="nav-links">
+        <a href="#origin">项目起因</a>
+        <a href="#pipeline">分析流程</a>
+        <a href="#risk">风险模型</a>
+        <a href="#token">Token 优化</a>
+        <a href="#output">最终输出</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-content">
+      <div class="eyebrow">PUBLIC CONTENT · RISK INTELLIGENCE · LLM ASSISTED</div>
+      <h1>XHS 平台黑灰产情报收集与分析思路</h1>
+      <p>
+        从公开内容平台中识别黑灰产前端获客、隐晦引流、评论区询价与站外转化线索，
+        将零散帖子和互动行为转化为可解释、可追踪、可复核的风险情报。
+      </p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#pipeline">查看 Pipeline</a>
+        <a class="btn" href="#token">查看 Token 节省策略</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="origin">
+      <div class="section-title">
+        <div class="label">01 · 项目起因</div>
+        <h2>黑灰产不一定发生在“黑产平台”，公开内容平台也可能成为获客入口</h2>
+        <p class="lead">
+          很多黑灰产链路并不是一上来就完成交易，而是先在公开平台完成曝光、筛选、引流，再把潜在用户导向私域渠道进行转化。
+        </p>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>曝光</h3>
+          <p>用副业、教程、资源、经验分享等正常外壳包装异常业务，降低用户警惕。</p>
+        </div>
+        <div class="card">
+          <h3>筛选</h3>
+          <p>通过评论区、关键词、私信暗示筛出有需求的用户，例如询价、求渠道、求带。</p>
+        </div>
+        <div class="card">
+          <h3>引流与转化</h3>
+          <p>把用户引导至微信、QQ、Telegram、社群、网盘等站外渠道，完成后续交易或诈骗。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="why">
+      <div class="section-title">
+        <div class="label">02 · 为什么选择 XHS</div>
+        <h2>XHS 不是黑灰产平台，但非常适合观察黑灰产的前端获客</h2>
+        <p class="lead">
+          它同时具备搜索、推荐、评论互动和内容包装场景。正文负责制造可信外壳，评论区往往暴露真实需求。
+        </p>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>平台特点</h3>
+          <ul>
+            <li>流量大，内容曝光效率高。</li>
+            <li>帖子适合包装成经验分享、避坑指南、兼职推荐。</li>
+            <li>搜索场景强，用户会主动检索副业、渠道、资料、账号等关键词。</li>
+            <li>评论区互动密集，容易出现询价、求资源、求联系方式等信号。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>重点观察对象</h3>
+          <div class="tags">
+            <span class="tag">正文包装</span>
+            <span class="tag">评论询价</span>
+            <span class="tag">私聊暗示</span>
+            <span class="tag">站外引流</span>
+            <span class="tag">黑话变体</span>
+            <span class="tag">作者昵称</span>
+            <span class="tag">账号属地</span>
+            <span class="tag">共享联系方式</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="direction">
+      <div class="section-title">
+        <div class="label">03 · 主要方向</div>
+        <h2>重点关注四类风险线索</h2>
+      </div>
+
+      <div class="grid grid-4">
+        <div class="card">
+          <h3>引流型风险</h3>
+          <p>正文讲一半，评论区引导“私聊、看主页、进群、加我”，最终将用户带到站外。</p>
+        </div>
+        <div class="card">
+          <h3>灰产服务型风险</h3>
+          <p>以“代办、渠道、资源、技术、账号服务”等形式包装，可能涉及违规服务撮合。</p>
+        </div>
+        <div class="card">
+          <h3>诈骗前置型风险</h3>
+          <p>用高收益、低门槛、内部渠道等话术吸引用户，后续可能导向诈骗或资金风险。</p>
+        </div>
+        <div class="card">
+          <h3>黑话变体型风险</h3>
+          <p>通过谐音、缩写、错别字、表情、图片文字、模糊表达规避平台审核。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="pipeline">
+      <div class="section-title">
+        <div class="label">04 · 情报收集分析流程</div>
+        <h2>Pipeline：采集 → 去重清洗 → 黑话种子提取 → 风险评估 → 可视化展示</h2>
+      </div>
+
+      <div class="flow">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>数据采集</h3>
+          <p>采集公开帖子、正文、评论、回复关系、互动数据和账号基础信息。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>去重清洗</h3>
+          <p>过滤重复模板、无意义评论和明显无关内容，保留高价值风险信号。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>黑话种子提取</h3>
+          <p>从已知黑话出发，发现共现词、变体词和新型隐晦表达。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <h3>风险评估</h3>
+          <p>结合正文、评论、互动、引流和账号行为进行风险分层。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <h3>可视化展示</h3>
+          <p>输出高风险帖子、命中原因、评论证据、账号关联和黑话趋势。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="collection">
+      <div class="section-title">
+        <div class="label">05 · 采集字段</div>
+        <h2>从帖子、账号、评论三层收集情报</h2>
+      </div>
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th>层级</th>
+            <th>字段</th>
+            <th>分析价值</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>帖子主体</td>
+            <td>标题、正文、发布时间、原帖链接、来源关键词、互动量</td>
+            <td>判断业务语境、内容包装方式和传播强度。</td>
+          </tr>
+          <tr>
+            <td>账号画像</td>
+            <td>作者昵称、用户 ID、属地、账号命名方式</td>
+            <td>昵称中常出现“车队、接待、起号、资源、通道”等线索。</td>
+          </tr>
+          <tr>
+            <td>评论区</td>
+            <td>评论内容、评论用户名、点赞数、询价和求联系方式表达</td>
+            <td>评论区能反映真实需求热度，也是站外引流的重要入口。</td>
+          </tr>
+          <tr>
+            <td>关联字段</td>
+            <td>联系方式、相似文案、共享用户 ID、重复黑话组合</td>
+            <td>用于团伙聚类，把单帖风险升级为组织化风险。</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="risk">
+      <div class="section-title">
+        <div class="label">06 · 风险评估模型</div>
+        <h2>把零散信号转成可排序的处置优先级</h2>
+      </div>
+
+      <div class="risk-layout">
+        <div class="risk-levels">
+          <div class="risk-row">
+            <span class="pill low">观察</span>
+            <p>普通讨论、泛泛提及、缺少交易信号，只作为词库扩展候选。</p>
+          </div>
+          <div class="risk-row">
+            <span class="pill mid">明细</span>
+            <p>risk_score &gt; 50：进入情报明细，保留帖子、作者、黑话、评论证据。</p>
+          </div>
+          <div class="risk-row">
+            <span class="pill high">团伙</span>
+            <p>max_risk &gt; 60：进入团伙聚类展示，优先人工复核和处置。</p>
+          </div>
+        </div>
+
+        <table class="matrix">
+          <thead>
+            <tr>
+              <th>风险信号</th>
+              <th>示例</th>
+              <th>为什么重要</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>高危业务类目</td>
+              <td>跑分、四件套、接码、解封、博彩诈骗</td>
+              <td>直接决定危害类型和处置优先级。</td>
+            </tr>
+            <tr>
+              <td>联系方式暴露</td>
+              <td>微信、QQ、Telegram、手机号、薇、扣扣、飞机</td>
+              <td>说明交易链路更明确，具备转化入口。</td>
+            </tr>
+            <tr>
+              <td>报价信息</td>
+              <td>200 元/单、0.2 元/粉、套餐价、包过</td>
+              <td>说明存在明确售卖意图。</td>
+            </tr>
+            <tr>
+              <td>评论询单</td>
+              <td>怎么联系、多少钱、想要、求带、怎么弄</td>
+              <td>衡量真实需求热度，辅助判断传播效果。</td>
+            </tr>
+            <tr>
+              <td>团伙关联</td>
+              <td>相同联系方式、相同作者、相似文案、共享用户 ID</td>
+              <td>从单帖线索升级为组织化线索。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="jargon">
+      <div class="section-title">
+        <div class="label">07 · 黑话种子闭环</div>
+        <h2>黑话不是一次性结果，而是下一轮采集入口</h2>
+        <p class="lead">
+          先用词典命中已知黑话，再用高风险样本发现新黑话，最后把新词回灌词库与采集关键词。
+        </p>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="card">
+          <h3>已知黑话</h3>
+          <p>起号、养号、破播放、有效粉、S 单、接码、四件套、跑分、盘口、走水。</p>
+        </div>
+        <div class="card">
+          <h3>上下文来源</h3>
+          <p>不仅看正文，还要看作者昵称、评论用户名和评论内容，这些位置常出现更直接的暗语。</p>
+        </div>
+        <div class="card">
+          <h3>回灌扩面</h3>
+          <p>新词进入本地词典和下一轮搜索种子，让采集面持续扩大，同时减少重复 LLM 判断。</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="token">
+      <div class="section-title">
+        <div class="label">08 · Token 优化策略</div>
+        <h2>不要让 LLM 分析全部原始数据，只让它处理高价值语义难题</h2>
+      </div>
+
+      <div class="token-stack">
+        <div class="token-card">
+          <div class="num">01</div>
+          <h3>规则先行</h3>
+          <p>去重、字段清洗、联系方式、报价、关键词命中、互动统计、风险分计算都由代码完成。</p>
+        </div>
+        <div class="token-card">
+          <div class="num">02</div>
+          <h3>先过滤再调用</h3>
+          <p>无业务命中、低风险、无评论询单、无黑话、无联系方式的内容不进入 LLM。</p>
+        </div>
+        <div class="token-card">
+          <div class="num">03</div>
+          <h3>只传压缩字段</h3>
+          <p>只传作者昵称、标题、正文摘要、高价值评论、已命中标签和风险分，不传全量原文。</p>
+        </div>
+        <div class="token-card">
+          <div class="num">04</div>
+          <h3>批量请求</h3>
+          <p>一次处理 20-30 条结构化记录，要求模型输出 JSON 数组，减少请求开销和冗余提示词。</p>
+        </div>
+        <div class="token-card">
+          <div class="num">05</div>
+          <h3>沉淀缓存</h3>
+          <p>LLM 提取的新黑话写回词典；相同文本 hash、note_id、联系方式 hash 复用历史结果。</p>
+        </div>
+        <div class="token-card">
+          <div class="num">06</div>
+          <h3>分层使用模型</h3>
+          <p>规则处理确定性任务，轻量模型做短文本归类，主模型只做新黑话发现和复杂语义判断。</p>
+        </div>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:18px">
+        <div class="card">
+          <h3>错误方式</h3>
+          <p>把几千条帖子全文和全部评论直接丢给大模型，让模型从头分析。这样成本高、速度慢、输出也难复核。</p>
+        </div>
+        <div class="card">
+          <h3>推荐方式</h3>
+          <p>先用规则和统计方法把原始数据压缩成高价值情报，再让 LLM 做黑话发现、隐晦表达识别和语义补充。</p>
+        </div>
+      </div>
+
+      <div class="code">{
+  "note_id": "xxx",
+  "author_nickname": "跑分车队",
+  "title": "四件套通道",
+  "content_excerpt": "盘口代收代付，接跑分...",
+  "top_comments": ["怎么联系", "多少钱", "想上车"],
+  "matched_keywords": ["跑分", "四件套", "代收代付"],
+  "risk_score": 92
+}</div>
+
+      <div class="quote">
+        核心原则：用代码处理确定性任务，用 LLM 处理不确定语义；先过滤、再压缩、再批量调用，最后把结果沉淀成词典。
+      </div>
+    </section>
+
+    <section id="demo">
+      <div class="section-title">
+        <div class="label">09 · 演示落地路径</div>
+        <h2>从一批 XHS 原始帖子到可交付情报成果</h2>
+      </div>
+
+      <div class="demo-timeline">
+        <div class="demo-item">
+          <div>
+            <h3>准备原始数据</h3>
+            <p>输入 XHS 采集 JSON，包含帖子、作者、评论和互动数据。</p>
+          </div>
+        </div>
+        <div class="demo-item">
+          <div>
+            <h3>运行流水线</h3>
+            <p>执行清洗、提取、分析、看板生成和报告生成，内部中间 JSON 不作为最终交付。</p>
+          </div>
+        </div>
+        <div class="demo-item">
+          <div>
+            <h3>查看看板</h3>
+            <p>在 HTML 中浏览风险分布、团伙聚类、黑话种子和高风险明细。</p>
+          </div>
+        </div>
+        <div class="demo-item">
+          <div>
+            <h3>阅读分析文档</h3>
+            <p>通过 Markdown 报告快速掌握高优先级团伙、典型样本和处置建议。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="output">
+      <div class="section-title">
+        <div class="label">10 · 最终交付</div>
+        <h2>只输出两个面向用户的结果文件</h2>
+      </div>
+      <div class="grid grid-2">
+        <div class="file-card">
+          <div class="file-name">dashboard.html</div>
+          <h3>离线情报看板</h3>
+          <p>展示数据漏斗、风险分布、业务类目、属地来源、黑话搜索种子、团伙聚类和高风险情报明细。</p>
+        </div>
+        <div class="file-card">
+          <div class="file-name">analysis_report.md</div>
+          <h3>分析文档</h3>
+          <p>用于汇报和复盘，包含高优先级团伙、高风险样本、黑话种子、处置建议和合规说明。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    Defensive intelligence workflow only · For anti-fraud, trust & safety, risk control, and security research.
+  </footer>
+</body>
+</html>

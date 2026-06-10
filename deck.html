@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>灰黑产挖掘 Agent · 比赛演示</title>
+<style>
+  :root{
+    --red:#ff3b3b; --orange:#ff8a3b; --yellow:#ffd23b;
+    --purple:#a855f7; --blue:#3b82f6; --amber:#f59e0b; --cyan:#22d3ee;
+    --green:#22c55e; --emerald:#10b981;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    background:#070709;color:#fff;overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,Helvetica,Arial,sans-serif;
+  }
+  #stars{position:fixed;inset:0;z-index:0;opacity:.55;}
+  .stage{position:relative;z-index:10;height:100vh;width:100%;display:flex;align-items:center;justify-content:center;padding:64px 32px;}
+  @media(min-width:768px){.stage{padding:64px 96px;}}
+  .slide{display:none;width:100%;max-width:1152px;flex-direction:column;align-items:center;justify-content:center;text-align:center;animation:fadeInUp .5s cubic-bezier(.16,1,.3,1);}
+  .slide.active{display:flex;}
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:none;}}
+
+  /* typography */
+  .aurora{
+    background:linear-gradient(110deg,var(--red),var(--orange),var(--yellow),var(--orange),var(--red));
+    background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:aurora 6s linear infinite;
+  }
+  @keyframes aurora{to{background-position:200% center;}}
+  h1.title{font-size:clamp(56px,9vw,128px);font-weight:900;line-height:.95;letter-spacing:-.02em;}
+  h2.sub{font-size:clamp(36px,6vw,96px);font-weight:900;letter-spacing:-.02em;margin-top:12px;}
+  .slide-title{font-size:clamp(40px,6vw,64px);font-weight:900;letter-spacing:-.02em;}
+  .kicker{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);
+    padding:6px 16px;border-radius:999px;font-size:12px;font-weight:500;color:rgba(255,255,255,.4);letter-spacing:.05em;margin-bottom:16px;}
+  .badge{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,59,59,.2);background:rgba(255,59,59,.1);
+    padding:8px 20px;border-radius:999px;font-size:14px;font-weight:500;color:#ff8a8a;letter-spacing:.03em;margin-bottom:32px;}
+  .lead{margin-top:40px;max-width:640px;font-size:20px;line-height:1.6;color:rgba(255,255,255,.5);}
+  .lead .strong{color:rgba(255,255,255,.7);margin-top:8px;display:block;}
+
+  /* layout helpers */
+  .grid{display:grid;gap:20px;margin-top:48px;width:100%;}
+  .g3{grid-template-columns:repeat(3,1fr);}
+  .g4{grid-template-columns:repeat(4,1fr);}
+  .g2{grid-template-columns:repeat(2,1fr);}
+  @media(max-width:767px){.g3,.g4{grid-template-columns:1fr;}.g2{grid-template-columns:1fr;}}
+  .pills{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px;margin-top:48px;}
+  .pill{border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);backdrop-filter:blur(4px);
+    padding:8px 16px;border-radius:999px;font-size:14px;color:rgba(255,255,255,.4);}
+  .tag{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);padding:4px 12px;border-radius:999px;font-size:12px;color:rgba(255,255,255,.35);}
+
+  .card{border-radius:16px;border:1px solid rgba(255,255,255,.08);padding:28px;text-align:left;backdrop-filter:blur(4px);background:rgba(255,255,255,.03);}
+  .card .emoji{font-size:40px;}
+  .card h3{margin-top:16px;font-size:20px;font-weight:700;}
+  .card p{margin-top:8px;font-size:14px;line-height:1.6;color:rgba(255,255,255,.45);}
+  .c-red{border-color:rgba(255,59,59,.2);background:rgba(255,59,59,.05);}
+  .c-amber{border-color:rgba(245,158,11,.2);background:rgba(245,158,11,.05);}
+  .c-purple{border-color:rgba(168,85,247,.2);background:rgba(168,85,247,.05);}
+  .c-blue{border-color:rgba(59,130,246,.2);background:rgba(59,130,246,.05);}
+  .c-cyan{border-color:rgba(34,211,238,.2);background:rgba(34,211,238,.05);}
+  .c-green{border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.05);}
+
+  .note{margin-top:48px;font-size:18px;color:rgba(255,255,255,.4);}
+  .note .bad{color:var(--red);font-weight:700;text-decoration:line-through;}
+  .flowpill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:10px 20px;font-size:14px;font-weight:500;margin-top:40px;}
+  .flow-amber{border:1px solid rgba(245,158,11,.2);background:rgba(245,158,11,.1);color:#fbbf24;}
+
+  /* flow chips */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;margin-top:48px;}
+  .chip{display:flex;flex-direction:column;align-items:center;gap:8px;width:120px;border-radius:16px;border:1px solid rgba(255,255,255,.08);
+    padding:16px;backdrop-filter:blur(4px);}
+  .chip .ic{font-size:26px;}
+  .chip .t{font-size:14px;font-weight:600;}
+  .chip .s{font-size:10px;color:rgba(255,255,255,.3);}
+  .arrow{color:rgba(255,255,255,.2);font-size:18px;}
+
+  /* big stats */
+  .stat{display:flex;flex-direction:column;align-items:center;}
+  .stat .num{font-size:clamp(44px,6vw,64px);font-weight:900;font-variant-numeric:tabular-nums;}
+  .stat .lab{margin-top:8px;font-size:16px;font-weight:600;color:rgba(255,255,255,.7);}
+  .stat .sub{margin-top:4px;font-size:12px;color:rgba(255,255,255,.3);}
+
+  /* two-layer model */
+  .model{border-radius:24px;padding:40px;text-align:left;}
+  .model .layer{font-size:12px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;}
+  .model .name{font-size:30px;font-weight:900;margin-top:2px;}
+  .model .desc{font-size:14px;font-weight:600;margin-top:4px;opacity:.7;}
+  .model p{margin-top:20px;font-size:14px;line-height:1.6;color:rgba(255,255,255,.5);}
+  .model .big{display:flex;align-items:center;gap:12px;margin-top:24px;}
+  .model .big .v{font-size:48px;font-weight:900;}
+  .m-red{border:1px solid rgba(255,59,59,.2);background:linear-gradient(to bottom right,rgba(127,29,29,.2),transparent);}
+  .m-purple{border:1px solid rgba(168,85,247,.2);background:linear-gradient(to bottom right,rgba(88,28,135,.2),transparent);}
+
+  /* hero stat box */
+  .herobox{margin-top:40px;width:100%;max-width:768px;border-radius:24px;border:2px solid rgba(255,59,59,.3);
+    background:linear-gradient(to bottom right,rgba(127,29,29,.3),rgba(0,0,0,.4));padding:40px;backdrop-filter:blur(4px);}
+  .herobox .row{display:flex;align-items:baseline;justify-content:center;gap:16px;}
+  .herobox .v{font-size:clamp(48px,8vw,72px);font-weight:900;color:var(--red);}
+  .herobox .v small{font-size:30px;}
+  .herobox .dot{font-size:60px;font-weight:900;color:rgba(255,255,255,.3);}
+  .herobox .cap{margin-top:16px;font-size:20px;font-weight:500;color:rgba(255,138,138,.8);}
+  .herobox .cap2{margin-top:8px;font-size:14px;color:rgba(255,138,138,.4);}
+  .subgangs{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:32px;}
+  .subgang{border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);border-radius:12px;padding:12px 20px;}
+  .subgang .a{font-size:18px;font-weight:700;}
+  .subgang .b{font-size:12px;color:rgba(255,255,255,.35);}
+
+  /* flywheel */
+  .fw{width:100%;max-width:896px;margin-top:40px;}
+  .fwgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .fwcard{border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);padding:20px;backdrop-filter:blur(4px);}
+  .fwcard.last{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.08);box-shadow:0 10px 30px rgba(255,255,255,.05);}
+  .fwcard .r{font-size:12px;font-weight:700;color:rgba(255,255,255,.4);margin-bottom:12px;}
+  .fwcard .raw{font-size:24px;font-weight:900;}
+  .fwcard .gg{margin-top:4px;font-size:14px;color:rgba(255,255,255,.5);}
+  .fwcard .top{margin-top:8px;border-radius:8px;background:rgba(255,255,255,.05);padding:6px;font-size:12px;font-weight:600;color:var(--red);}
+  .fwsum{margin-top:24px;border-radius:12px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.2);padding:20px;
+    font-size:14px;color:rgba(255,255,255,.4);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;}
+  .fwsum b{color:#fff;}.fwsum b.red{color:var(--red);}.fwsum .sep{color:rgba(255,255,255,.2);margin:0 8px;}
+
+  /* keyword clusters */
+  .kw{border-radius:16px;border:1px solid;padding:20px;text-align:left;backdrop-filter:blur(4px);}
+  .kw .cat{font-size:12px;font-weight:700;color:rgba(255,255,255,.6);margin-bottom:8px;}
+  .kw .words{font-size:14px;line-height:1.6;color:rgba(255,255,255,.4);}
+
+  /* eng cards */
+  .eng{border-radius:16px;padding:28px;text-align:left;backdrop-filter:blur(4px);}
+  .eng .ic{font-size:26px;}
+  .eng .big{margin-top:8px;font-size:36px;font-weight:900;}
+  .eng h3{margin-top:4px;font-size:18px;font-weight:700;color:#fff;}
+  .eng p{margin-top:8px;font-size:14px;line-height:1.6;color:rgba(255,255,255,.45);}
+  .eng .detail{margin-top:12px;border-radius:8px;background:rgba(255,255,255,.05);padding:6px 12px;font-size:12px;color:rgba(255,255,255,.3);}
+  .e-emerald{color:var(--emerald);border:1px solid rgba(16,185,129,.15);background:rgba(16,185,129,.05);}
+  .e-purple{color:var(--purple);border:1px solid rgba(168,85,247,.15);background:rgba(168,85,247,.05);}
+  .e-amber{color:var(--amber);border:1px solid rgba(245,158,11,.15);background:rgba(245,158,11,.05);}
+  .eng h3,.eng p,.eng .detail{color-adjust:exact;}
+  .eng h3{color:#fff;}.eng p{color:rgba(255,255,255,.45);}
+
+  .summary{margin-top:32px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.2);padding:20px;
+    font-size:14px;color:rgba(255,255,255,.4);display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:16px;}
+  .summary .hi{font-size:18px;font-weight:700;}
+  .hi.em{color:var(--emerald);}.hi.pu{color:var(--purple);}
+
+  /* tech stack */
+  .tech{border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);padding:20px;text-align:left;backdrop-filter:blur(4px);}
+  .tech .box{border-radius:8px;background:rgba(255,255,255,.05);width:fit-content;padding:10px;margin-bottom:12px;font-size:20px;}
+  .tech h3{font-size:14px;font-weight:700;}
+  .tech p{margin-top:8px;font-size:12px;line-height:1.6;color:rgba(255,255,255,.4);}
+
+  /* closing */
+  .cta{margin-top:48px;display:flex;flex-wrap:wrap;justify-content:center;gap:16px;}
+  .cta a{display:inline-flex;align-items:center;gap:8px;border-radius:999px;padding:12px 32px;font-size:16px;
+    border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);backdrop-filter:blur(4px);color:#fff;text-decoration:none;transition:all .2s;}
+  .cta a:hover{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.2);}
+  .cta a.red{border-color:rgba(255,59,59,.2);background:rgba(255,59,59,.1);}
+  .cta a.red:hover{background:rgba(255,59,59,.3);}
+  .codeline{margin-top:24px;display:inline-block;border-radius:16px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);
+    padding:16px 32px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:18px;color:rgba(255,255,255,.7);backdrop-filter:blur(4px);}
+
+  /* nav */
+  .pageno{position:fixed;bottom:24px;right:24px;z-index:20;display:flex;align-items:center;gap:16px;}
+  .pageno .n{font-family:ui-monospace,monospace;font-size:14px;color:rgba(255,255,255,.3);letter-spacing:.1em;font-variant-numeric:tabular-nums;}
+  .navbtn{display:flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:999px;
+    border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);backdrop-filter:blur(8px);cursor:pointer;color:#fff;font-size:18px;transition:all .2s;}
+  .navbtn:hover{background:rgba(255,255,255,.15);}
+  .navbtn:disabled{opacity:.2;cursor:default;}
+  .navbtn.red{border-color:rgba(255,59,59,.2);background:rgba(255,59,59,.1);}
+  .navbtn.red:hover{background:rgba(255,59,59,.25);}
+  .dots{position:fixed;bottom:28px;left:24px;z-index:20;display:flex;gap:6px;}
+  .dot{height:6px;width:6px;border-radius:999px;background:rgba(255,255,255,.2);cursor:pointer;transition:all .3s;border:none;padding:0;}
+  .dot:hover{background:rgba(255,255,255,.4);}
+  .dot.active{width:24px;background:var(--red);}
+  .hint{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:20;font-size:12px;color:rgba(255,255,255,.2);}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="stage" id="stage">
+
+  <!-- 01 cover -->
+  <section class="slide active">
+    <div class="badge">📡 寻找黑灰产 · 比赛作品</div>
+    <h1 class="title"><span class="aurora">灰黑产挖掘</span></h1>
+    <h2 class="sub">Agent</h2>
+    <p class="lead">全流程自治智能体<span class="strong">对话爬取 → 团伙挖掘 → 知识图谱 → 飞轮回流 → 硬核报告</span></p>
+    <div class="pills">
+      <span class="pill">DeerFlow SuperAgent</span>
+      <span class="pill">闲鱼 · 字节系</span>
+      <span class="pill">138K+ 数据</span>
+      <span class="pill">514 团伙</span>
+    </div>
+  </section>
+
+  <!-- 02 background -->
+  <section class="slide">
+    <div class="kicker">⚠️ 背景</div><div class="slide-title">黑灰产藏在哪？</div>
+    <div class="grid g3">
+      <div class="card c-red"><div class="emoji">🕵️</div><h3>马甲伪装</h3><p>同一团伙开几十个小号，话术模板一模一样，单看商品根本认不出是同一拨人</p></div>
+      <div class="card c-amber"><div class="emoji">🔤</div><h3>黑话暗语</h3><p>抖币→DB→💎，Dou+→豆荚→抖➕，同音/拆字/emoji 持续变体规避审核</p></div>
+      <div class="card c-purple"><div class="emoji">🕸️</div><h3>跨业务联动</h3><p>一波人做代充+代投+带货+刷量，表面独立实则同一超级团伙，一损俱损</p></div>
+    </div>
+    <p class="note">传统人工排查：<span class="bad">慢、漏、不可规模化</span></p>
+  </section>
+
+  <!-- 03 solution -->
+  <section class="slide">
+    <div class="kicker">🔀 方案</div><div class="slide-title">全流程自治 Agent</div>
+    <div class="flow">
+      <div class="chip" style="background:rgba(59,130,246,.08)"><div class="ic">🔍</div><div class="t" style="color:var(--blue)">对话爬取</div><div class="s">Playwright</div></div><span class="arrow">›</span>
+      <div class="chip" style="background:rgba(245,158,11,.08)"><div class="ic">🔻</div><div class="t" style="color:var(--amber)">三层漏斗</div><div class="s">规则+LLM</div></div><span class="arrow">›</span>
+      <div class="chip" style="background:rgba(255,59,59,.08)"><div class="ic">🧩</div><div class="t" style="color:var(--red)">两层团伙</div><div class="s">指纹+union</div></div><span class="arrow">›</span>
+      <div class="chip" style="background:rgba(168,85,247,.08)"><div class="ic">🧠</div><div class="t" style="color:var(--purple)">黑话挖掘</div><div class="s">LLM扩展</div></div><span class="arrow">›</span>
+      <div class="chip" style="background:rgba(34,211,238,.08)"><div class="ic">🕸️</div><div class="t" style="color:var(--cyan)">知识图谱</div><div class="s">D3力导向</div></div><span class="arrow">›</span>
+      <div class="chip" style="background:rgba(34,197,94,.08)"><div class="ic">📄</div><div class="t" style="color:var(--green)">硬核报告</div><div class="s">Markdown</div></div>
+    </div>
+    <div class="flowpill flow-amber">🔄 飞轮回流：新黑话 → 新关键词 → 自动回灌爬虫 → 更多团伙</div>
+  </section>
+
+  <!-- 04 scale -->
+  <section class="slide">
+    <div class="kicker">📈 成果</div><div class="slide-title">数据规模</div>
+    <div class="grid g4" style="gap:40px;">
+      <div class="stat"><span class="num count" data-to="138051" style="color:var(--blue)">0</span><span class="lab">原始数据 +</span><span class="sub">375个文件</span></div>
+      <div class="stat"><span class="num count" data-to="514" style="color:var(--red)">0</span><span class="lab">核心团伙</span><span class="sub">话术指纹聚类</span></div>
+      <div class="stat"><span class="num count" data-to="20" style="color:var(--purple)">0</span><span class="lab">超级团伙</span><span class="sub">union-find</span></div>
+      <div class="stat"><span class="num count" data-to="579" style="color:var(--amber)">0</span><span class="lab">头号团伙</span><span class="sub">Dou+×带货</span></div>
+    </div>
+    <div class="pills">
+      <span class="pill">20 条字节产品线</span><span class="pill">446 关键词</span>
+      <span class="pill">89 黑话变体</span><span class="pill">71.8K 高质量数据</span>
+    </div>
+  </section>
+
+  <!-- 05 two-layer model -->
+  <section class="slide">
+    <div class="kicker">🕸️ 核心算法</div><div class="slide-title">两层团伙模型</div>
+    <div class="grid g2" style="gap:32px;">
+      <div class="model m-red">
+        <div class="layer" style="color:var(--red)">第一层</div>
+        <div class="name">核心团伙</div>
+        <div class="desc" style="color:#fca5a5">话术模板指纹聚类</div>
+        <p>相同话术模板 = 同一团伙的马甲号（sock-puppets）。不做 BFS 链式膨胀，每个团伙业务纯净、可审计、可解释。</p>
+        <div class="big"><span class="v" style="color:var(--red)">514</span><span style="font-size:14px;color:rgba(252,165,165,.6)">个核心团伙</span></div>
+      </div>
+      <div class="model m-purple">
+        <div class="layer" style="color:var(--purple)">第二层</div>
+        <div class="name">超级团伙</div>
+        <div class="desc" style="color:#d8b4fe">union-find 交叉关联</div>
+        <p>共享卖家 + 同图 + 同话术，把多个表面独立的业务团伙连成“一波人做多业务”的超级网络。</p>
+        <div class="big"><span class="v" style="color:var(--purple)">20</span><span style="font-size:14px;color:rgba(216,180,254,.6)">个超级网络</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 top gang -->
+  <section class="slide">
+    <div class="kicker">🎯 头号目标</div><div class="slide-title">最大超级团伙网络</div>
+    <div class="herobox">
+      <div class="row">
+        <span class="v">18<small>团</small></span><span class="dot">·</span><span class="v">579<small>人</small></span>
+      </div>
+      <div class="cap">Dou+ 代投 × 带货权限 · 跨业务联合作案</div>
+      <div class="cap2">一波人做多业务，从代投折扣到账号共享，全链路覆盖</div>
+    </div>
+    <div class="subgangs">
+      <div class="subgang"><div class="a">16团/199人</div><div class="b">代拍·剪映</div></div>
+      <div class="subgang"><div class="a">4团/123人</div><div class="b">数据·曝光</div></div>
+      <div class="subgang"><div class="a">6团/92人</div><div class="b">充值</div></div>
+      <div class="subgang"><div class="a">7团/62人</div><div class="b">账号升级</div></div>
+      <div class="subgang"><div class="a">5团/36人</div><div class="b">会员</div></div>
+      <div class="subgang"><div class="a">4团/46人</div><div class="b">千川</div></div>
+    </div>
+  </section>
+
+  <!-- 07 flywheel -->
+  <section class="slide">
+    <div class="kicker">🔄 飞轮</div><div class="slide-title">4 轮自我强化</div>
+    <div class="fw">
+      <div class="fwgrid">
+        <div class="fwcard"><div class="r">初始</div><div class="raw">55K</div><div class="gg">312 团伙</div><div class="top">11团/403人</div></div>
+        <div class="fwcard"><div class="r">飞轮 1</div><div class="raw">76K</div><div class="gg">314 团伙</div><div class="top">18团/565人</div></div>
+        <div class="fwcard"><div class="r">飞轮 2</div><div class="raw">87K</div><div class="gg">391 团伙</div><div class="top">18团/571人</div></div>
+        <div class="fwcard last"><div class="r">飞轮 3</div><div class="raw">138K</div><div class="gg">514 团伙</div><div class="top">18团/579人</div></div>
+      </div>
+      <div class="fwsum">
+        📈 核心团伙: 312 → 314 → 391 → <b>514</b><span class="sep">|</span>
+        超级团伙: 11 → 11 → 15 → <b>20</b><span class="sep">|</span>
+        头号: 403 → 565 → 571 → <b class="red">579</b>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 keywords -->
+  <section class="slide">
+    <div class="kicker"># 覆盖</div><div class="slide-title">关键词集群</div>
+    <div class="grid g3">
+      <div class="kw" style="border-color:rgba(59,130,246,.2);background:rgba(59,130,246,.05)"><div class="cat">代充系</div><div class="words">抖币·钻石·DB·抖B·dy充值·音浪·💎·CapCut会员·剪映VIP</div></div>
+      <div class="kw" style="border-color:rgba(255,59,59,.2);background:rgba(255,59,59,.05)"><div class="cat">投流系</div><div class="words">Dou+·豆荚·抖加·D+投放·千川·巨量引擎·穿山甲·星图</div></div>
+      <div class="kw" style="border-color:rgba(168,85,247,.2);background:rgba(168,85,247,.05)"><div class="cat">数据工具</div><div class="words">蝉妈妈·灰豚·考古加·飞瓜·kaogujia·chanmama·灰🐬·kgj</div></div>
+      <div class="kw" style="border-color:rgba(245,158,11,.2);background:rgba(245,158,11,.05)"><div class="cat">直播/工会</div><div class="words">直播人气·挂铁·弹幕·TK公会·TikTok MCN·无人直播·数字人</div></div>
+      <div class="kw" style="border-color:rgba(34,211,238,.2);background:rgba(34,211,238,.05)"><div class="cat">账号/解封</div><div class="words">号交易·白号·实名·改实名·申诉·限流·蓝V·企业号·MCN</div></div>
+      <div class="kw" style="border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.05)"><div class="cat">新业务线</div><div class="words">飞书·即梦AI·穿山甲·西瓜视频·番茄小说·懂车帝·火山引擎</div></div>
+    </div>
+    <p class="note" style="margin-top:32px;font-size:14px;color:rgba(255,255,255,.3)">446 关键词 · 覆盖 20 条字节产品线 · 飞轮自动扩展</p>
+  </section>
+
+  <!-- 09 engineering -->
+  <section class="slide">
+    <div class="kicker">⚙️ 工程</div><div class="slide-title">又快又省</div>
+    <div class="grid g3">
+      <div class="eng e-emerald"><div class="ic">🔻</div><div class="big">99%+</div><h3>三层漏斗</h3><p>75%数据零Token规则层判定，LLM调用压缩99.8%，成本&lt;$0.30</p><div class="detail">若逐条LLM判定需$15-30</div></div>
+      <div class="eng e-purple"><div class="ic">🔄</div><div class="big">98%</div><h3>增量加载</h3><p>checkpoint缓存83MB，375文件→0-5新文件，IO减少98%，秒级加载</p><div class="detail">首次全量·后续增量</div></div>
+      <div class="eng e-amber"><div class="ic">⚡</div><div class="big">全自动</div><h3>飞轮自动回流</h3><p>slang_expand --auto-append，新黑话自动追加词库，无人介入</p><div class="detail">备份·去重·增量写入</div></div>
+    </div>
+    <div class="summary">
+      <span>⚙️ 总Token成本</span>→<span class="hi em">&lt;$0.30</span>
+      <span style="color:rgba(255,255,255,.2)">|</span>
+      <span>单次分析全流程</span>→<span class="hi pu">&lt;3 min</span>
+    </div>
+  </section>
+
+  <!-- 10 tech stack -->
+  <section class="slide">
+    <div class="kicker">🖥️ 架构</div><div class="slide-title">Agent 技术栈</div>
+    <div class="grid g4">
+      <div class="tech"><div class="box">⌨️</div><h3>DeerFlow</h3><p>SuperAgent 框架·对话编排·子代理调度</p></div>
+      <div class="tech"><div class="box">🌐</div><h3>Playwright</h3><p>浏览器自动化·闲鱼MTOP API·扫码登录</p></div>
+      <div class="tech"><div class="box">🧮</div><h3>豆包 LLM</h3><p>火山方舟 Ark·黑话扩展·团伙定性·相关性判定</p></div>
+      <div class="tech"><div class="box">🧠</div><h3>Python 算法</h3><p>话术模板指纹·union-find·N-gram·D3.js</p></div>
+    </div>
+    <div class="pills" style="margin-top:32px;gap:8px;">
+      <span class="tag">Python</span><span class="tag">Playwright</span><span class="tag">豆包 Ark</span><span class="tag">D3.js</span>
+      <span class="tag">union-find</span><span class="tag">N-gram</span><span class="tag">三层漏斗</span><span class="tag">DeerFlow</span>
+      <span class="tag">Next.js</span><span class="tag">Tailwind</span>
+    </div>
+  </section>
+
+  <!-- 11 data flow -->
+  <section class="slide">
+    <div class="kicker">🌐 数据流</div><div class="slide-title">从零到报告</div>
+    <div class="flow" style="margin-top:40px;">
+      <div class="chip" style="border-color:rgba(59,130,246,.2);background:rgba(59,130,246,.05)"><div class="ic">🔍</div><div class="t">闲鱼爬取</div><div class="s">Playwright</div></div><span class="arrow">→</span>
+      <div class="chip" style="border-color:rgba(245,158,11,.2);background:rgba(245,158,11,.05)"><div class="ic">🔻</div><div class="t">数据清洗</div><div class="s">去重+漏斗</div></div><span class="arrow">→</span>
+      <div class="chip" style="border-color:rgba(255,59,59,.2);background:rgba(255,59,59,.05)"><div class="ic">🧩</div><div class="t">团伙检测</div><div class="s">514团</div></div><span class="arrow">→</span>
+      <div class="chip" style="border-color:rgba(168,85,247,.2);background:rgba(168,85,247,.05)"><div class="ic">🧠</div><div class="t">黑话挖掘</div><div class="s">89变体</div></div><span class="arrow">→</span>
+      <div class="chip" style="border-color:rgba(34,197,94,.2);background:rgba(34,197,94,.05)"><div class="ic">📄</div><div class="t">报告输出</div><div class="s">Markdown</div></div>
+    </div>
+    <div class="flowpill flow-amber" style="margin-top:32px;">🔄 飞轮回灌：新黑话 → 关键词库 → 重新爬取 → 更多团伙</div>
+  </section>
+
+  <!-- 12 closing -->
+  <section class="slide">
+    <h1 class="title" style="font-size:clamp(48px,7vw,80px)"><span class="aurora">一句话，全搞定</span></h1>
+    <p class="lead" style="font-size:24px;max-width:768px;">对 Agent 说
+      <span class="codeline">「爬一下抖音代充并出团伙报告」</span>
+    </p>
+    <p class="note" style="margin-top:24px;font-size:18px;">它自己完成 <b style="color:#fff;font-weight:700">爬取 → 分析 → 图谱 → 飞轮 → 报告</b></p>
+    <div class="cta">
+      <a href="gang-viz.html" target="_blank">👁️ 交互式团伙图谱</a>
+    </div>
+  </section>
+
+</div>
+
+<div class="pageno">
+  <span class="n" id="pageno">01 / 12</span>
+  <button class="navbtn" id="prev">‹</button>
+  <button class="navbtn red" id="next">›</button>
+</div>
+<div class="dots" id="dots"></div>
+<div class="hint">← → 翻页 · 空格下一页</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const TOTAL=slides.length;
+  let cur=0;
+  const pageno=document.getElementById('pageno');
+  const dotsWrap=document.getElementById('dots');
+  slides.forEach((_,i)=>{const b=document.createElement('button');b.className='dot'+(i===0?' active':'');b.onclick=()=>go(i);dotsWrap.appendChild(b);});
+  const dots=[...dotsWrap.children];
+  const pad=n=>String(n).padStart(2,'0');
+
+  function runCounters(slide){
+    slide.querySelectorAll('.count').forEach(el=>{
+      const to=+el.dataset.to;const dur=1200;const start=performance.now();
+      const ease=t=>1-Math.pow(1-t,3);
+      function tick(now){const p=Math.min((now-start)/dur,1);el.textContent=Math.round(ease(p)*to).toLocaleString();if(p<1)requestAnimationFrame(tick);}
+      requestAnimationFrame(tick);
+    });
+  }
+  function go(i){
+    cur=Math.max(0,Math.min(i,TOTAL-1));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===cur));
+    dots.forEach((d,k)=>d.classList.toggle('active',k===cur));
+    pageno.textContent=pad(cur+1)+' / '+pad(TOTAL);
+    document.getElementById('prev').disabled=cur===0;
+    document.getElementById('next').disabled=cur===TOTAL-1;
+    runCounters(slides[cur]);
+  }
+  document.getElementById('prev').onclick=()=>go(cur-1);
+  document.getElementById('next').onclick=()=>go(cur+1);
+  window.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();go(cur+1);}
+    if(e.key==='ArrowLeft')go(cur-1);
+  });
+  go(0);
+
+  // starfield
+  const cv=document.getElementById('stars'),ctx=cv.getContext('2d');
+  let stars=[],W,H;
+  function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;stars=Array.from({length:Math.round(W*H/6000)},()=>({x:Math.random()*W,y:Math.random()*H,z:Math.random()*.8+.2,tw:Math.random()*Math.PI*2}));}
+  resize();addEventListener('resize',resize);
+  function draw(t){
+    ctx.clearRect(0,0,W,H);
+    for(const s of stars){
+      s.y+=s.z*.15;if(s.y>H){s.y=0;s.x=Math.random()*W;}
+      const a=(.4+.6*Math.abs(Math.sin(s.tw+t*.001)))*s.z;
+      const r=s.z*1.4;
+      ctx.beginPath();ctx.arc(s.x,s.y,r,0,7);
+      ctx.fillStyle='rgba('+(200+Math.round(s.z*55))+','+(200+Math.round(s.z*40))+',255,'+a+')';
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  requestAnimationFrame(draw);
+</script>
+</body>
+</html>

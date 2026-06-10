@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GrayHunt · 黑灰产情报智能体 Demo</title>
+<style>
+  :root{
+    --bg:#0b0e14; --bg2:#11161f; --card:#161c28; --line:#243042;
+    --text:#e8ecf2; --muted:#8b95a7; --brand:#4ea1ff; --brand2:#7c5cff;
+    --high:#ff4d4f; --med:#faad14; --low:#52c41a; --ok:#3ddc97;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 800px at 70% -10%, #1a2334 0%, var(--bg) 55%);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    overflow:hidden;
+  }
+  .deck{position:relative;width:100vw;height:100vh}
+  .slide{
+    position:absolute;inset:0;display:none;
+    flex-direction:column;justify-content:center;
+    padding:6vh 8vw;animation:fade .5s ease;
+  }
+  .slide.active{display:flex}
+  @keyframes fade{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .tag{display:inline-block;font-size:14px;color:var(--brand);letter-spacing:2px;
+       text-transform:uppercase;margin-bottom:14px;font-weight:600}
+  h1{font-size:54px;line-height:1.15;margin-bottom:18px;letter-spacing:-1px}
+  h2{font-size:38px;line-height:1.2;margin-bottom:24px;letter-spacing:-.5px}
+  .grad{background:linear-gradient(90deg,var(--brand),var(--brand2));
+        -webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{font-size:20px;color:var(--muted);line-height:1.7;max-width:900px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:10px}
+  .cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+        padding:22px 24px}
+  .card h3{font-size:20px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .card p,.card li{font-size:15px;color:var(--muted);line-height:1.7}
+  .card ul{margin-left:18px;margin-top:6px}
+  .num{font-size:13px;color:var(--brand);font-weight:700;letter-spacing:1px}
+  .prompt{background:#0d1320;border:1px solid var(--line);border-left:3px solid var(--brand);
+          border-radius:10px;padding:16px 18px;font-size:15px;line-height:1.7;color:#cdd6e4;
+          white-space:pre-wrap;margin-top:8px;max-height:42vh;overflow:auto}
+  .flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:14px 18px;font-size:15px;text-align:center;min-width:130px}
+  .step b{display:block;font-size:16px;color:var(--text);margin-bottom:4px}
+  .step span{font-size:12px;color:var(--muted)}
+  .arrow{color:var(--brand);font-size:22px}
+  .pill{display:inline-block;background:#1c2433;border:1px solid var(--line);
+        border-radius:999px;padding:4px 12px;font-size:13px;color:var(--muted);margin:3px}
+  .big{font-size:64px;font-weight:800;line-height:1}
+  .stat{text-align:center}
+  .stat .l{font-size:14px;color:var(--muted);margin-top:8px}
+  .save{color:var(--ok)}
+  .nav{position:fixed;bottom:24px;right:32px;display:flex;gap:10px;align-items:center;z-index:50}
+  .nav button{background:var(--card);border:1px solid var(--line);color:var(--text);
+              width:42px;height:42px;border-radius:10px;font-size:18px;cursor:pointer}
+  .nav button:hover{border-color:var(--brand)}
+  .page{position:fixed;bottom:30px;left:32px;color:var(--muted);font-size:14px;z-index:50}
+  .logo{position:fixed;top:28px;left:36px;font-size:18px;font-weight:800;z-index:50;
+        display:flex;align-items:center;gap:8px}
+  .bar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--brand),var(--brand2));z-index:60;transition:width .3s}
+  table.case{width:100%;border-collapse:collapse;margin-top:12px;font-size:15px}
+  table.case th,table.case td{border:1px solid var(--line);padding:10px 14px;text-align:left}
+  table.case th{background:#1c2433;color:var(--text)}
+  table.case td{color:var(--muted)}
+  table.case td.hl{color:var(--ok);font-weight:700}
+  .kbd{font-size:13px;color:var(--muted)}
+  .center{align-items:center;text-align:center}
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div class="logo">🛡️ <span class="grad">GrayHunt</span></div>
+<div class="deck" id="deck">
+
+<!-- 1 封面 -->
+<section class="slide active center">
+  <div class="tag">Threat Intelligence Agent · Demo</div>
+  <h1>GrayHunt<br><span class="grad">黑灰产情报智能体</span></h1>
+  <p class="sub" style="margin:0 auto">Telegram + Twitter/X 双平台 · 自动采集 → 智能清洗 → 沉淀落库 → 情报研判 → 可视化展示<br>一个对话即可驱动全链路的自定义智能体</p>
+</section>
+
+<!-- 2 痛点 / 项目是什么 -->
+<section class="slide">
+  <div class="num">01 / PROBLEM</div>
+  <h2>黑灰产情报，<span class="grad">人工盯不过来</span></h2>
+  <div class="cols">
+    <div class="card">
+      <h3>😣 传统方式的痛</h3>
+      <ul>
+        <li>抖音/TikTok 刷量、账号交易、引流诈骗散落在海量 TG 群与推特</li>
+        <li>关键引流信息（微信/TG号、域名、价目表）常藏在<b>图片</b>里，文本搜不到</li>
+        <li>人工逐条翻看，效率低、易漏、难溯源</li>
+        <li>群链接易失效、私密群难定位</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>✅ GrayHunt 的解</h3>
+      <ul>
+        <li>一句话驱动：采集→清洗→落库→研判→可视化全自动</li>
+        <li>多模态：LLM 视觉提取<b>图片里</b>的账号/二维码/价目表</li>
+        <li>实体不脱敏、可溯源；群链接精准（group_id 派生）</li>
+        <li>产出交互式情报大屏 GrayHunt 页面</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 3 架构总览 -->
+<section class="slide">
+  <div class="num">02 / ARCHITECTURE</div>
+  <h2>整体架构：<span class="grad">一个智能体编排全链路</span></h2>
+  <div class="flow">
+    <div class="step"><b>采集</b><span>Telegram / Twitter</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>清洗</b><span>关键词 + LLM 双层过滤</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>落库</b><span>SQLite + JSON/CSV</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>研判</b><span>SQL 聚合 + LLM 研判</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><b>可视化</b><span>GrayHunt HTML 大屏</span></div>
+  </div>
+  <div class="cols3" style="margin-top:28px">
+    <div class="card"><h3>🤖 自定义智能体</h3><p>telegram-twitter-gray-hunter，SOUL 内置工作流与护栏，绑定 3 个情报 skill + 图表能力</p></div>
+    <div class="card"><h3>🧩 三件套 Skill</h3><p>collector 采集清洗落库 · curator 候选池治理 · analyst 分析研判与可视化</p></div>
+    <div class="card"><h3>🗄️ 统一情报库</h3><p>按数据源分表，支持多库联邦合并；账号/链接/图片信息结构化沉淀</p></div>
+  </div>
+</section>
+
+<!-- 4 步骤1 采集 -->
+<section class="slide">
+  <div class="num">03 / STEP 1 · 采集 + 清洗 + 落库</div>
+  <h2>双平台<span class="grad">智能采集</span></h2>
+  <div class="cols">
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <h3>🔧 功能与逻辑</h3>
+        <ul>
+          <li><b>Telegram</b>：<code>crawl --joined-only</code> 走 iter_dialogs 读已加入群，不 resolve 不加群 → <b>零封号风险</b></li>
+          <li><b>Twitter</b>：<code>crawl-twitter --vision</code> 经 TikHub API，并对图片做<b>多模态视觉提取</b></li>
+          <li>采集即清洗即落库：关键词→LLM 过滤后写入 SQLite + JSON/CSV</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>🖼️ 多模态亮点</h3>
+        <p>黑灰产把微信号、TG号、域名、<b>价目表</b>印在图片里规避文本检测。GrayHunt 用 LLM 视觉提取还原——例如识别出「支付宝白号¥158 / 年号¥439」整张价目表。</p>
+      </div>
+    </div>
+    <div>
+      <div class="num">提示词示例 PROMPT</div>
+      <div class="prompt">用 threat-intel-collector 采集情报：
+1. Telegram：crawl --joined-only --days 30
+   （我已加入的所有群，最近30天，最安全）
+2. Twitter：crawl-twitter --days 7 --vision
+   （开启图片视觉提取：识别图中
+    微信/TG/QQ账号、域名、价目表、二维码）
+
+完成后告诉我：各平台新增情报数、
+风险等级分布、是否触发限流。</div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 步骤2 治理 -->
+<section class="slide">
+  <div class="num">04 / STEP 2 · 候选池治理</div>
+  <h2>群组<span class="grad">反向发现与治理</span></h2>
+  <div class="cols">
+    <div class="card">
+      <h3>🔧 功能与逻辑</h3>
+      <ul>
+        <li>采集时自动从消息里<b>反向发现</b>新群线索，沉淀进候选池</li>
+        <li>curator <code>stats</code> 查看候选池规模</li>
+        <li><code>verify</code> 用 get_entity 校验候选真实类型，剔除个人号/失效号</li>
+        <li><code>llm-crawl</code> 让 LLM 评分选出高价值群</li>
+        <li>高风险操作（加群）默认<b>先列出待确认</b>，控制频率防 FloodWait</li>
+      </ul>
+    </div>
+    <div>
+      <div class="num">提示词示例 PROMPT</div>
+      <div class="prompt">用 curator 查看反向发现的候选群池统计，
+列出值得关注的新群给我看
+（只列出，先不要加群）。</div>
+      <div class="card" style="margin-top:14px">
+        <h3>🛡️ 安全护栏</h3>
+        <p>SOUL 内置：触碰 Telegram 的高风险操作必须先 dry-run / 先确认；账号被限流立即停止。这几天实测<b>全程零 FloodWait</b>。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 步骤3 研判 -->
+<section class="slide">
+  <div class="num">05 / STEP 3 · 分析研判</div>
+  <h2>把情报库<span class="grad">当知识库查</span></h2>
+  <div class="cols">
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <h3>🔧 功能与逻辑</h3>
+        <ul>
+          <li>analyst 对库做<b>确定性 SQL 聚合</b>：风险分布、Top 高危群、高频实体、风险热度</li>
+          <li>支持<b>自由只读 SQL</b>（intel / intel_raw 视图），把库当知识库问</li>
+          <li>聚合事实 → LLM 出中文研判报告（不编数据）</li>
+          <li>实体<b>完整不脱敏</b>：微信/TG/QQ/域名/邀请码用于溯源处置</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>📊 高频引流渠道（实测）</h3>
+        <p><span class="pill">微信: BuyFollower</span><span class="pill">TG: @lantianhao</span><span class="pill">域名: fensyun.com</span><span class="pill">价目: 15元/个</span></p>
+      </div>
+    </div>
+    <div>
+      <div class="num">提示词示例 PROMPT</div>
+      <div class="prompt">用 analyst 分析情报库：
+· 风险等级 / 类型分布、Top 高危来源群
+· 聚合所有情报里的 Telegram/微信/QQ/
+  域名/邀请码（完整不脱敏）
+然后生成一份中文研判报告。
+
+或自由 SQL：
+"哪些来源群的 high 风险最多？
+ 列 Top10 及其群链接"</div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 步骤4 可视化 -->
+<section class="slide">
+  <div class="num">06 / STEP 4 · 可视化展示</div>
+  <h2>GrayHunt <span class="grad">情报大屏</span></h2>
+  <div class="cols">
+    <div class="card">
+      <h3>🔧 功能与逻辑</h3>
+      <ul>
+        <li><code>report-html</code> 一键生成交互式 HTML</li>
+        <li>按<b>来源群组聚合</b>，同类群组归并</li>
+        <li><b>四维筛选</b>：风险等级 / 风险类别 / 来源平台 / 来源群组（按量降序）</li>
+        <li>群链接可点（私密群 🔒 标识）、正文 URL 自动转蓝链</li>
+        <li><b>图片缩略图 + 图中信息(OCR)</b>展示</li>
+        <li><code>--embed-images</code> 离线自包含，可做项目首页</li>
+      </ul>
+    </div>
+    <div>
+      <div class="num">提示词示例 PROMPT</div>
+      <div class="prompt">用 report-html 生成 GrayHunt 可视化页面，
+合并所有情报库，生成离线自包含版本
+（图片内嵌 base64），告诉我文件路径。</div>
+      <div class="card" style="margin-top:14px">
+        <h3>📈 当前成果</h3>
+        <p><b>378 条</b>情报 · <b>44 个</b>来源群组 · Twitter + Telegram + @JISOU 三来源 · 73 条图中信息提取</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 8 省钱机制 总览 -->
+<section class="slide">
+  <div class="num">07 / COST · 核心亮点</div>
+  <h2>如何<span class="grad">大幅降低 LLM 花销</span></h2>
+  <div class="cols">
+    <div class="card">
+      <h3>① 关键词预筛（省最多）</h3>
+      <p>先用<b>本地关键词</b>（products × actions 矩阵）粗筛，<b>只有命中的才送 LLM</b>。海量噪音消息在本地零成本拦掉，LLM 只处理疑似目标。</p>
+    </div>
+    <div class="card">
+      <h3>② 批量分析</h3>
+      <p>多条消息<b>合并一次调用</b>（batch_size=15），N 条只算 1 次请求，调用次数降一个量级。</p>
+    </div>
+    <div class="card">
+      <h3>③ 多模态按需 + 缓存去重</h3>
+      <p>视觉提取（<code>--vision</code>）可关；落库 <b>(day,id) 去重</b>不重复研判；原始归档复用，规则变了不必重爬。</p>
+    </div>
+  </div>
+</section>
+
+<!-- 9 case 数据 -->
+<section class="slide">
+  <div class="num">08 / COST · 实测 CASE</div>
+  <h2>真实数据：<span class="grad">关键词预筛省下 90%+ 调用</span></h2>
+  <table class="case">
+    <tr><th>场景</th><th>采集原始量</th><th>关键词过滤后<br>(进 LLM)</th><th>LLM 实际处理占比</th><th>省下</th></tr>
+    <tr><td>Telegram「小Z集团」群<br>30天历史</td><td>2,795 条</td><td>2 条</td><td>0.07%</td><td class="hl">↓ 99.9%</td></tr>
+    <tr><td>Twitter 26词 × 10页</td><td>748 条</td><td>141 条</td><td>18.9%</td><td class="hl">↓ 81%</td></tr>
+    <tr><td>批量调用<br>(batch_size=15)</td><td>141 条 = 141 次</td><td>≈ 10 次请求</td><td>—</td><td class="hl">↓ 93%<br>调用次数</td></tr>
+  </table>
+  <p class="sub" style="margin-top:20px">
+    若把 2,795 条全量喂给 LLM 逐条研判 ≈ 2,795 次调用；GrayHunt 经关键词预筛后仅 <b>2 条</b>进 LLM，<b class="save">直接省掉 99.9% 的 LLM 开销</b>。
+    叠加批量调用，单次完整作业的 LLM 成本降到原始方案的<b class="save"> 个位数百分比</b>。
+  </p>
+</section>
+
+<!-- 10 一句话全流程 + 结尾 -->
+<section class="slide center">
+  <div class="num">09 / ONE-PROMPT DEMO</div>
+  <h2>一条提示词，<span class="grad">跑通全部功能</span></h2>
+  <div class="prompt" style="max-width:880px;margin:0 auto;text-align:left">完成一次完整的黑灰产情报作业：
+① Telegram crawl --joined-only --days 30 + Twitter crawl-twitter --vision 采集
+② curator 查看候选池并列出新群（先不加群）
+③ analyst 分析：风险分布 / Top高危群 / 高频引流渠道（不脱敏）+ 出研判报告
+④ report-html --embed-images 生成 GrayHunt 可视化页面
+
+全程真实数据严禁编造，实体不脱敏，用真实路径，每步汇报关键统计。</div>
+  <p class="sub" style="margin:22px auto 0">采集 → 清洗 → 落库 → 研判 → 可视化，<b class="grad">全自动编排</b></p>
+</section>
+
+
+</div>
+
+<div class="page" id="pageInfo">1 / 1</div>
+<div class="nav">
+  <button onclick="prev()">‹</button>
+  <button onclick="next()">›</button>
+</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  let i=0;
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('active',k===i));
+    document.getElementById('pageInfo').textContent=(i+1)+' / '+slides.length;
+    document.getElementById('bar').style.width=((i+1)/slides.length*100)+'%';
+  }
+  function next(){show(i+1)}
+  function prev(){show(i-1)}
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown')next();
+    else if(e.key==='ArrowLeft'||e.key==='PageUp')prev();
+    else if(e.key==='Home')show(0);
+    else if(e.key==='End')show(slides.length-1);
+  });
+  show(0);
+</script>
+</body>
+</html>
